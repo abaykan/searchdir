@@ -1,10 +1,15 @@
 package helpers
 
 import (
+	"flag"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 )
 
 const (
@@ -19,7 +24,6 @@ func LenReadable(length int, decimals int) (out string) {
 	var i int
 	var remainder int
 
-	// Get whole number, and the remainder for decimals
 	if length > TB {
 		unit = "TB"
 		i = length / TB
@@ -37,14 +41,13 @@ func LenReadable(length int, decimals int) (out string) {
 		i = length / KB
 		remainder = length - (i * KB)
 	} else {
-		return strconv.Itoa(length) + " B"
+		return strconv.Itoa(length) + "B"
 	}
 
 	if decimals == 0 {
 		return strconv.Itoa(i) + " " + unit
 	}
 
-	// This is to calculate missing leading zeroes
 	width := 0
 	if remainder > GB {
 		width = 12
@@ -56,7 +59,6 @@ func LenReadable(length int, decimals int) (out string) {
 		width = 3
 	}
 
-	// Insert missing leading zeroes
 	remainderString := strconv.Itoa(remainder)
 	for iter := len(remainderString); iter < width; iter++ {
 		remainderString = "0" + remainderString
@@ -65,7 +67,7 @@ func LenReadable(length int, decimals int) (out string) {
 		decimals = len(remainderString)
 	}
 
-	return fmt.Sprintf("%d %s", i, unit)
+	return fmt.Sprintf("%d%s", i, unit)
 }
 
 func IsError(err error) bool {
@@ -80,4 +82,47 @@ func VarFormat(s string, v interface{}) string {
 	t, b := new(template.Template), new(strings.Builder)
 	template.Must(t.Parse(s)).Execute(b, v)
 	return b.String()
+}
+
+func FlagPassed(name string) bool {
+	found := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			found = true
+		}
+	})
+	return found
+}
+
+func ValidUrl(toTest string) bool {
+	_, err := url.ParseRequestURI(toTest)
+	if err != nil {
+		return false
+	}
+
+	u, err := url.Parse(toTest)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return false
+	}
+
+	return true
+}
+
+func Rikues(urlnya string) {
+	resp, err := http.Get(urlnya)
+	if IsError(err) {
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if IsError(err) {
+		return
+	}
+
+	sb := string(body)
+
+	if resp.StatusCode != 404 {
+		fmt.Print("[", time.Now().Format("03:04:05"), "] ", resp.StatusCode, " --- ", LenReadable(len(sb), 1), "\t", urlnya, "\n")
+	}
 }
