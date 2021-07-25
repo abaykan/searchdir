@@ -4,8 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"text/template"
@@ -108,11 +110,47 @@ func ValidUrl(toTest string) bool {
 	return true
 }
 
+func get_random_agent() string {
+	var file, _ = os.OpenFile("db/user-agents.txt", os.O_RDONLY, 0644)
+	defer file.Close()
+
+	var text = make([]byte, 133285)
+	for {
+		n, err := file.Read(text)
+		if err != io.EOF {
+			if IsError(err) {
+				break
+			}
+		}
+		if n == 0 {
+			break
+		}
+	}
+
+	pecahagent := strings.Split(string(text), "\n")
+
+	rand.Seed(time.Now().UTC().UnixNano())
+	agent := pecahagent[1+rand.Intn(len(pecahagent)-1)]
+
+	return agent
+}
+
 func Rikues(urlnya string) {
-	resp, err := http.Get(urlnya)
+	user_agent := string(get_random_agent())
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", urlnya, nil)
 	if IsError(err) {
 		return
 	}
+
+	req.Header.Set("User-Agent", user_agent)
+
+	resp, err := client.Do(req)
+	if IsError(err) {
+		return
+	}
+
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
