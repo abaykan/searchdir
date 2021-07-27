@@ -22,7 +22,7 @@ func show_banner() {
 `)
 }
 
-func gassss(linknya string, eks string) {
+func gassss(linknya string, eks string, randomAgent bool) {
 	var file, err = os.OpenFile("db/dicc.txt", os.O_RDONLY, 0644)
 	if h.IsError(err) {
 		return
@@ -71,7 +71,11 @@ func gassss(linknya string, eks string) {
 					if h.IsError(err) {
 						return
 					}
-					h.Rikues(fixurl.String())
+					if randomAgent {
+						h.Rikues(fixurl.String(), true)
+					} else {
+						h.Rikues(fixurl.String(), false)
+					}
 				}
 			} else {
 				pecah[i] = strings.Replace(pecah[i], "%EXT%", eks, 1)
@@ -79,7 +83,11 @@ func gassss(linknya string, eks string) {
 				if h.IsError(err) {
 					return
 				}
-				h.Rikues(fixurl.String())
+				if randomAgent {
+					h.Rikues(fixurl.String(), true)
+				} else {
+					h.Rikues(fixurl.String(), false)
+				}
 			}
 
 		} else {
@@ -87,7 +95,11 @@ func gassss(linknya string, eks string) {
 			if h.IsError(err) {
 				return
 			}
-			h.Rikues(fixurl.String())
+			if randomAgent {
+				h.Rikues(fixurl.String(), true)
+			} else {
+				h.Rikues(fixurl.String(), false)
+			}
 		}
 	}
 	s.Stop()
@@ -97,7 +109,8 @@ func main() {
 	show_banner()
 
 	target := flag.String("u", "", "URL Target (Required)")
-	eks := flag.String("e", "", "Extension: php,css,js (Required)")
+	eks := flag.String("e", "", "Extension: php,css,js,etc. (Required)")
+	random_agent := flag.Bool("random-agent", false, "Use random user-agent")
 
 	flag.Parse()
 
@@ -120,5 +133,10 @@ func main() {
 	} else {
 		fmt.Printf("Extension: %s \n\n", *eks)
 	}
-	gassss(*target, *eks)
+
+	if *random_agent {
+		gassss(*target, *eks, true)
+	} else {
+		gassss(*target, *eks, false)
+	}
 }

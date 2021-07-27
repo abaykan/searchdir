@@ -130,13 +130,12 @@ func get_random_agent() string {
 	pecahagent := strings.Split(string(text), "\n")
 
 	rand.Seed(time.Now().UTC().UnixNano())
-	agent := pecahagent[1+rand.Intn(len(pecahagent)-1)]
+	agent := pecahagent[rand.Intn(len(pecahagent)-1)]
 
 	return agent
 }
 
-func Rikues(urlnya string) {
-	user_agent := string(get_random_agent())
+func Rikues(urlnya string, randomAgent bool) {
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", urlnya, nil)
@@ -144,7 +143,10 @@ func Rikues(urlnya string) {
 		return
 	}
 
-	req.Header.Set("User-Agent", user_agent)
+	if randomAgent {
+		user_agent := string(get_random_agent())
+		req.Header.Set("User-Agent", user_agent)
+	}
 
 	resp, err := client.Do(req)
 	if IsError(err) {
