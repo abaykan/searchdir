@@ -1,7 +1,7 @@
 package main
 
 import (
-	h "belajar-golang/helpers"
+	h "searchdir/helpers"
 	"flag"
 	"fmt"
 	"github.com/briandowns/spinner"
