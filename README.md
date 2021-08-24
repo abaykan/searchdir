@@ -1,5 +1,6 @@
 # searchdir
-DirSearch in Go. For my own learning purpose.
+DirSearch in Go. For my own learning purpose.  
+These codes are messy af. Feel free to contribute so I know how to code properly.
 
 ### Screenshot
 <img src="https://assets.codelatte.net/images/uploads/ScreenShot2021-07-25at22.27.33.png">
