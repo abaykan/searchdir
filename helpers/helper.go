@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"text/template"
 	"time"
 )
@@ -70,6 +72,17 @@ func LenReadable(length int, decimals int) (out string) {
 	}
 
 	return fmt.Sprintf("%d%s", i, unit)
+}
+
+func SetupCloseHandler() {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("\rCtrl+C pressed")
+		fmt.Println("\r- Stopping Services -")
+		os.Exit(0)
+	}()
 }
 
 func IsError(err error) bool {
@@ -135,7 +148,16 @@ func get_random_agent() string {
 	return agent
 }
 
-func Rikues(urlnya string, randomAgent bool) {
+func Contains(arr []string, str string) bool {
+	for _, a := range arr {
+		if a == str {
+			return true
+		}
+	}
+	return false
+}
+
+func Rikues(urlnya string, randomAgent bool, excode []string) {
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", urlnya, nil)
@@ -162,7 +184,50 @@ func Rikues(urlnya string, randomAgent bool) {
 
 	sb := string(body)
 
-	if resp.StatusCode != 404 {
+	if Contains(excode, strconv.Itoa(resp.StatusCode)) != true {
+		u, err := url.Parse(urlnya)
+		if IsError(err) {
+			return
+		}
+		WriteLog(u.Host, strconv.Itoa(resp.StatusCode)+"\t"+LenReadable(len(sb), 1)+"\t"+urlnya)
 		fmt.Print("[", time.Now().Format("03:04:05"), "] ", resp.StatusCode, " --- ", LenReadable(len(sb), 1), "\t", urlnya, "\n")
+
+	}
+}
+
+func WriteLog(domain string, log string) {
+	// bikin dir
+	path := "logs/"
+	os.MkdirAll(path, 0755)
+
+	// deteksi apakah file sudah ada
+	var _, err = os.Stat("logs/" + domain + ".txt")
+
+	// buat file baru jika belum ada
+	if os.IsNotExist(err) {
+		var file, err = os.Create("logs/" + domain + ".txt")
+		if IsError(err) {
+			return
+		}
+		defer file.Close()
+	}
+
+	// buka file dengan level akses READ & WRITE
+	var file, errr = os.OpenFile("logs/"+domain+".txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if IsError(errr) {
+		return
+	}
+	defer file.Close()
+
+	// tulis data ke file
+	_, err = file.WriteString(log + "\n")
+	if IsError(err) {
+		return
+	}
+
+	// simpan perubahan
+	err = file.Sync()
+	if IsError(err) {
+		return
 	}
 }

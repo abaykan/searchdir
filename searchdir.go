@@ -1,13 +1,14 @@
 package main
 
 import (
-	h "searchdir/helpers"
 	"flag"
 	"fmt"
 	"github.com/briandowns/spinner"
 	"io"
 	"net/url"
 	"os"
+	h "searchdir/helpers"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -22,7 +23,32 @@ func show_banner() {
 `)
 }
 
-func gassss(linknya string, eks string, randomAgent bool) {
+func gassss(linknya string, eks string, opsi []string) {
+	randomagent, _ := strconv.ParseBool(opsi[0])
+
+	pecah_exclude := []string{}
+	all_exclude := []string{"404"}
+
+	if strings.Index(opsi[1], "-") > -1 {
+		pecah_exclude = strings.Split(opsi[1], "-")
+		awal, _ := strconv.Atoi(pecah_exclude[0])
+		akhir, _ := strconv.Atoi(pecah_exclude[1])
+		for i := awal; i <= akhir; i++ {
+			all_exclude = append(all_exclude, strconv.Itoa(i))
+		}
+	} else if strings.Index(opsi[1], ",") > -1 {
+		for _, excl := range strings.Split(opsi[1], ",") {
+			all_exclude = append(all_exclude, excl)
+		}
+	} else if len(opsi[1]) == 3 {
+		all_exclude = append(all_exclude, opsi[1])
+	} else if opsi[1] == "gausah" {
+		all_exclude = all_exclude
+	} else {
+		fmt.Println("Weird Status Code. Please re-check your input.")
+		os.Exit(0)
+	}
+
 	var file, err = os.OpenFile("db/dicc.txt", os.O_RDONLY, 0644)
 	if h.IsError(err) {
 		return
@@ -60,9 +86,7 @@ func gassss(linknya string, eks string, randomAgent bool) {
 			pecah[i] = h.VarFormat("{{.}}"+pecah[i], "/")
 		}
 
-		// ada %EXT%
 		if strings.Index(pecah[i], "%EXT%") > -1 {
-			// eks ada koma
 			if strings.Index(eks, ",") > -1 {
 				pecaheks := strings.Split(eks, ",")
 				for o := 0; o < len(pecaheks); o++ {
@@ -71,10 +95,10 @@ func gassss(linknya string, eks string, randomAgent bool) {
 					if h.IsError(err) {
 						return
 					}
-					if randomAgent {
-						h.Rikues(fixurl.String(), true)
+					if randomagent {
+						h.Rikues(fixurl.String(), true, all_exclude)
 					} else {
-						h.Rikues(fixurl.String(), false)
+						h.Rikues(fixurl.String(), false, all_exclude)
 					}
 				}
 			} else {
@@ -83,10 +107,10 @@ func gassss(linknya string, eks string, randomAgent bool) {
 				if h.IsError(err) {
 					return
 				}
-				if randomAgent {
-					h.Rikues(fixurl.String(), true)
+				if randomagent {
+					h.Rikues(fixurl.String(), true, all_exclude)
 				} else {
-					h.Rikues(fixurl.String(), false)
+					h.Rikues(fixurl.String(), false, all_exclude)
 				}
 			}
 
@@ -95,10 +119,10 @@ func gassss(linknya string, eks string, randomAgent bool) {
 			if h.IsError(err) {
 				return
 			}
-			if randomAgent {
-				h.Rikues(fixurl.String(), true)
+			if randomagent {
+				h.Rikues(fixurl.String(), true, all_exclude)
 			} else {
-				h.Rikues(fixurl.String(), false)
+				h.Rikues(fixurl.String(), false, all_exclude)
 			}
 		}
 	}
@@ -106,11 +130,13 @@ func gassss(linknya string, eks string, randomAgent bool) {
 }
 
 func main() {
+	h.SetupCloseHandler()
 	show_banner()
 
 	target := flag.String("u", "", "URL Target (Required)")
 	eks := flag.String("e", "", "Extension: php,css,js,etc. (Required)")
 	random_agent := flag.Bool("random-agent", false, "Use random user-agent")
+	exclude_status_code := flag.String("es", "", "Exclude Status Code. Ex: \"400\", \"400,403\" or \"400-500\"")
 
 	flag.Parse()
 
@@ -134,9 +160,19 @@ func main() {
 		fmt.Printf("Extension: %s \n\n", *eks)
 	}
 
+	opsi := make([]string, 2)
+
 	if *random_agent {
-		gassss(*target, *eks, true)
+		opsi[0] = "true"
 	} else {
-		gassss(*target, *eks, false)
+		opsi[0] = "false"
 	}
+
+	if h.FlagPassed("es") {
+		opsi[1] = *exclude_status_code
+	} else {
+		opsi[1] = "gausah"
+	}
+
+	gassss(*target, *eks, opsi)
 }
